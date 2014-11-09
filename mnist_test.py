@@ -23,45 +23,80 @@ test_result = np.float64(data['test_y'])
 # temp = nn.sim([0, 0.5])
 
 
+#init data
+train_data = train_data#[0:100]
+train_result = train_result#[0:100]
+
+# test_data = train_data#[[0, 19]]
+# test_result = train_result#[[0, 19]]
+
+# sample_num = len(train_data)
+# index = np.random.permutation(sample_num)
+
+# print index
+
+
+# _index = index[0:2]
+
+# print _index
+
+# print train_data[_index].shape
+
+
+
+
 #init ann
-# train_data = train_data[0:100]
-# train_result = train_result[0:100]
+opt = {
+	'architecture' : [784,30,10],
+	'learningRate' : 0.3,
+	'error' : 0.001,
+	'epochs' : 100,
+	'batch' : 100
+}
+nn = ann.ann(opt)
+
+#combain
+rbm = files.loadData('rbm.db')
+nn.rbm(rbm)
+
+#train
+nn.train(train_data, train_result)
+files.saveData(nn, 'nn.db')
+
+_results = nn.sim(test_data)
+_results = _results.transpose()
+
+accuracy = 0
+for i in range(len(test_result)):
+	if i < 20:
+		print _results[i].argmax(), " : ", test_result[i].argmax()
+	if _results[i].argmax() == test_result[i].argmax():
+		accuracy += 1.00
+
+print accuracy, " / ", len(test_result)
+
+accuracy = accuracy/len(test_result)
+
+print 'Test accuracy is ', accuracy
+
+print _results[0]
 
 
-#init rbm
-rbm = ann.rbm(784, 3, 2, 0.5)
-
-rbm.train(train_data[0:100])
-
-# #init ann
-# nn = ann.ann([784,30,10], 2, 0.01, 2)
-
-# #combain
-# nn.rbm(rbm)
-
-# nn.train(train_data, train_result)
-# files.saveData(nn, 'nn.db')
-
-# # temp = nn.sim(train_data[0])
-
-# def compare(nn, data, results):
-# 	total = len(data)
-# 	right = 0
-# 	for i in range(total):
-# 		a = nn.sim(data[i]).argmax()
-# 		b = results[i].argmax()
-# 		# print a, " : ", b
-# 		if a == b:
-# 			right += 1
-# 	# error = error/total
-# 	print "#################"
-# 	print "Final result is: ", right, "/", total
-# 	print "#################\n\n"
-
-# compare(nn, test_data, test_result)
 
 
-# # temp = nn.sim(train_data[0])
-# # print "COMPARE==========="
-# # print temp
-# # print train_result[0]
+
+
+
+# temp = nn.sim(train_data[0])
+# print "COMPARE==========="
+# print temp
+# print train_result[0]
+
+
+# im = np.array(im)
+# im = im.reshape(28,28)
+ 
+# fig = plt.figure()
+# plotwindow = fig.add_subplot(111)
+# plt.imshow(im , cmap='gray')
+# plt.show()

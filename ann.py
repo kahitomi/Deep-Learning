@@ -2,6 +2,136 @@
 import numpy as np
 import math
 
+import matplotlib.pyplot as plt
+
+
+
+
+
+
+class eann(object):
+	"""EANN model"""
+
+	architecture = []
+	layer_num = 0
+	w = []
+	epochs = -1
+	error = 0.01
+	population = 1
+	mutationRate = 0.001
+
+	def __init__(self, options):
+		self.architecture = options['architecture']
+		self.layer_num = len(options['architecture'])
+		self.epochs = options['epochs']
+		self.error = options['error']
+		self.population = options['population']
+		self.mutationRate = options['mutationRate']
+
+		for i in range(0, self.layer_num-1):
+			self.w.append( np.random.random_integers( 3, size=( self.architecture[i+1], self.architecture[i] ) ) - 2 )
+
+
+	#node core
+	def core_function(self, in_value, weights, type = 'sigm'):
+		scale = 1.00
+		length = 1
+		if type is 'sigm' :
+			temp = 1.00/( 1.00 + np.exp( - np.dot( weights, in_value ) ) )
+		return temp
+
+	#train auto encoder and ann with evolution
+	def train(self, train_data, train_result):
+		data = train_data
+		#layer weights train
+		for layer in range(0, self.layer_num-1):
+			if layer is self.layer_num-1:
+				break
+
+			print 'To hidden layer ', layer+1
+			#initialise population
+			population = np.random.random_integers(3, size=(self.population, self.architecture[layer+1], self.architecture[layer]))-2
+			print 'initialise population successed'
+			individual_length = len(self.w[layer])
+
+			#epochs
+			epochs = 0
+			while 1:
+				epochs += 1
+				# print '- epoch ', epochs
+
+				#evaluate population
+				#and return the best individual
+				fitness = []
+				fitnessMax = -1
+				_max = 0
+				for i in range(self.population):
+					#calculate fitness
+					_data = self.core_function(data.transpose(), population[i])
+					_data = self.core_function(_data, population[i].transpose())
+					fitness.append( 1 - np.mean(np.abs(data-_data.transpose())) )
+					# if fitness[i] <= 0:
+					# 	print 'Fitness under 0 !!!!!!!!!!!!!!!!!!!!'
+					if fitness[i] > fitnessMax:
+						fitnessMax = fitness[i]
+						_max = i
+
+				# if epochs%100 == 0:
+				print 'layer', layer+1,'- epoch', epochs
+				print '         fitness is ', fitnessMax
+				print '         mean fitness is ', np.mean(fitness)
+
+				#finish
+				if fitnessMax >= 1 - self.error:
+					# print 'layer ', layer+1,' - epoch ', epochs
+					# print '         fitness is ', fitnessMax
+					print 'Finished\n'
+
+					#updata data
+					data = self.core_function(data.transpose(), population[_max])
+					break
+
+				if epochs >= self.epochs and self.epochs != -1:
+					print 'Finished\n'
+					#updata data
+					data = self.core_function(data.transpose(), population[_max])
+					break;
+
+				#reproduce with variation
+				population2 = []
+				#select function
+				sel_index = np.argsort(fitness)
+				sel_index = np.array(sel_index[self.population/2:])
+				selections = np.random.choice(sel_index, self.population*2)	
+				# selections = np.random.choice(self.population, self.population*2, p=fitness/np.sum(fitness))	
+				# print '                               ', fitness
+				# print '                               ', selections
+				#crossover
+				cross_points = np.nonzero(np.random.randint(2, size=(self.population, individual_length)))
+				population2 = population[selections[0:self.population]]
+				population2[cross_points] = population[selections[self.population:]][cross_points]
+				#mutation
+				muta_points = np.random.random_sample(population2.shape)
+				muta_points = muta_points < self.mutationRate
+				muta_points = muta_points.astype(int)
+				muta_points = np.nonzero(muta_points)
+				population2[muta_points] = (np.random.randint(3, size=population2.shape)-2)[muta_points]
+
+				#update population
+				population = population2
+				# break
+
+
+
+
+
+
+
+
+
+
+
+
 class rbm(object):
 	"""RBM model"""
 
@@ -9,23 +139,28 @@ class rbm(object):
 	layer_num = 0
 	epoch_num = 1
 	learningRate = 1
+	batch = 1
 
 	w = []
 	b = []
 
 	#init rbm
-	def __init__(self, layer_size, layer_num, epoch_num = 1, learningRate = 1):
+	def __init__(self, layer_size, layer_num, epoch_num = 1, learningRate = 1, batch = 10):
 		self.layer_size = layer_size
 		self.layer_num = layer_num
 		self.epoch_num = epoch_num
+		self.batch = batch
 		self.learningRate = learningRate
-		self.w = np.random.rand(layer_num-1, layer_size, layer_size)
-		self.b = np.random.rand(layer_num, layer_size)
+		self.w = np.random.rand(layer_num-1, layer_size, layer_size)*2-1
+		self.b = np.zeros([layer_num, layer_size], dtype=float)
 
 	#node core
 	def core_function(self, in_value, weights, bias, type = 'sigm'):
 		scale = 1.00
-		length = len(bias)
+		length = 1
+		# length = len(bias)
+		# print bias.shape
+		# print np.dot( weights, in_value ).shape
 		if type is 'sigm' :
 			temp = scale/( scale + scale*np.exp( - bias - np.dot( weights, in_value )/length ) )
 		# print temp
@@ -43,27 +178,19 @@ class rbm(object):
 
 	#gibbs function
 	def gibbs(self, data, w, b):
-		temp = np.empty(self.layer_size)
-		# for i in range(self.layer_size):
-		# 	P = self.core_function(data[i], w[i], b[i])
-		# 	if np.random.rand(1) > P :
-			# 	temp[i] = 1
-			# else:
-			# 	temp[i] = 0
+		temp = np.empty([self.layer_size, self.batch])
 
 		P = self.core_function(data, w, b)
 
-		for i in range(self.layer_size):
-			if np.random.rand(1) > P[i] :
-				temp[i] = 1
-			else:
-				temp[i] = 0
+		temp = np.random.rand(self.layer_size, self.batch)>P
+		temp = temp.astype(float)
 
 		return temp
 
 	#up to down train function
 	def rbm_down(self, data, layer):
-		sample_num = len(data)		
+		sample_num = len(data)	
+		batch_num = sample_num/self.batch	
 
 		for epoch in range(self.epoch_num):
 			#random train samples
@@ -76,34 +203,31 @@ class rbm(object):
 			_b = np.empty(self.layer_size)
 			_a = np.empty(self.layer_size)
 
-			#train rbm with one sample
-			for i in range(sample_num):
+			#train rbm with samples
+			for i in range(batch_num):
 
-				v1 = np.array(data[index[i]])
-				h1 = self.gibbs(v1, w, b)
-				v2 = self.gibbs(h1, w.transpose(), a)
-				h2 = self.core_function(v2, w, b)
+				v1 = np.array(data[index[(i*self.batch):((i+1)*self.batch)]])
+				v1 = v1.transpose()
 
-				error = sum((v1 - v2)**2)/self.layer_size
+				h1 = self.gibbs(v1, w, np.tile(b, [self.batch,1]).transpose() )
+				v2 = self.gibbs(h1, w.transpose(), np.tile(a, [self.batch,1]).transpose())
+				h2 = self.core_function(v2, w, np.tile(b, [self.batch,1]).transpose())
 
-				h1.shape = (1, self.layer_size)
-				h2.shape = (1, self.layer_size)
-				v1.shape = (1, self.layer_size)
-				v2.shape = (1, self.layer_size)
+				error = sum(sum((v1 - v2)**2))/self.layer_size/self.batch
 
-				c1 = np.dot(h1.transpose(), v1)
-				c2 = np.dot(h2.transpose(), v2)
+				c1 = np.dot(h1, v1.transpose())
+				c2 = np.dot(h2, v2.transpose())
 
-				_w += self.learningRate*(c1-c2)
-				_b += self.learningRate*(v1-v2)[0]
-				_a += self.learningRate*(h1-h2)[0]
+				_w += self.learningRate*(c1-c2)/self.batch
+				_b += self.learningRate*sum((v1-v2).transpose())/self.batch
+				_a += self.learningRate*sum((h1-h2).transpose())/self.batch
 
 				errors.append(error)
 
 
-			self.w[layer-1] = w+_w/sample_num
-			self.b[layer] = b+_b/sample_num
-			self.b[layer-1] = a+_a/sample_num
+			self.w[layer-1] = w+_w/batch_num
+			self.b[layer] = b+_b/batch_num
+			self.b[layer-1] = a+_a/batch_num
 
 			# print "weight ", self.w[layer-1][0][0:10]
 
@@ -113,6 +237,15 @@ class rbm(object):
 	def train(self, train_data):
 		data = train_data
 		# data = self.rbm_up(train_data, self.w[0], self.b[0])
+
+		# im = np.array(data[2])
+		# im = im.reshape(28,28)
+		 
+		# fig = plt.figure()
+		# plotwindow = fig.add_subplot(111)
+		# plt.imshow(im , cmap='gray')
+		# plt.show()
+
 		for layer in range(1, self.layer_num):
 			print '==========\nLayer ', layer
 			self.rbm_down(data, layer)
@@ -121,7 +254,39 @@ class rbm(object):
 
 			data = self.rbm_up(data, self.w[layer-1], self.b[layer])
 
-			# print data
+			# print data (images)
+
+			# im = np.array(data[555])
+			# im = im.reshape(28,28)
+			 
+			# fig = plt.figure()
+			# plotwindow = fig.add_subplot(111)
+			# plt.imshow(im , cmap='gray')
+			# plt.show()
+
+			# im = np.array(data[6347])
+			# im = im.reshape(28,28)
+			 
+			# fig = plt.figure()
+			# plotwindow = fig.add_subplot(111)
+			# plt.imshow(im , cmap='gray')
+			# plt.show()
+
+	def sim(self, test_data):
+		data = test_data
+		for layer in range(1, self.layer_num):
+			data = self.rbm_up(data, self.w[layer-1], self.b[layer])
+		return data
+
+
+
+
+
+
+
+
+
+
 
 
 class ann(object):
@@ -131,6 +296,7 @@ class ann(object):
 	layer_num = 0
 	learningRate = 1
 	epochs = 1
+	batch = 1
 
 	w = []
 	b = []
@@ -140,18 +306,19 @@ class ann(object):
 	error = 1
 
 	#init ann
-	def __init__(self, architecture, learningRate = 2, error = 0.05, epochs = 1):
+	def __init__(self, options):
 		super(ann, self).__init__()
 
-		self.architecture = architecture
-		self.layer_num = len(architecture)
-		self.learningRate = learningRate
-		self.error = error
-		self.epochs = epochs
+		self.architecture = options['architecture']
+		self.layer_num = len(options['architecture'])
+		self.learningRate = options['learningRate']
+		self.error = options['error']
+		self.epochs = options['epochs']
+		self.batch = options['batch']
 
 		# random set weights
 		for i in range(0, self.layer_num-1):
-			self.w.append(np.random.random( [self.architecture[i+1], self.architecture[i]] ))
+			self.w.append(np.random.random( [self.architecture[i+1], self.architecture[i]] )*2-1)
 			self.b.append(np.zeros( self.architecture[i+1], dtype=float ))
 			self.bp_temp.append(np.zeros( self.architecture[i+1], dtype=float ))
 
@@ -185,6 +352,7 @@ class ann(object):
 	#train function
 	def train(self, train_data, train_result):
 		sample_num = len(train_data)
+		batch_num = sample_num/self.batch
 		index = np.random.permutation(sample_num)
 
 		# index = range(sample_num)
@@ -194,18 +362,25 @@ class ann(object):
 		err = []
 
 		while epochs <= self.epochs:
+			index = np.random.permutation(sample_num)
 			err = []
 			print "Epochs: ", epochs, "-----"
-			for i in index:
-				#add noise here
+			for i in range(batch_num):
+				#select train data
+				_index = index[(i*self.batch):((i+1)*self.batch)]
+				data = train_data[_index]
+				data = data.transpose()
 
 				#test error
-				temp = self.ff(train_data[i])
-				error = np.mean(np.abs(train_result[i] - temp))
+				temp = self.ff(data, self.batch)
+				temp = temp.transpose()
+
+				error = np.mean(np.abs(train_result[_index] - temp))
 				# print 'error is: ', error
 
 				#bp
-				self.bp(train_data[i], train_result[i])
+				self.bp(data, train_result[_index])
+
 				err.append(error)
 
 			err = np.mean(err)
@@ -217,72 +392,53 @@ class ann(object):
 
 
 	#feedforward function
-	def ff(self, inputs):
+	def ff(self, inputs, data_num):
 		for i in range(self.layer_num-1):
-			inputs = self.core_function(inputs, self.w[i], self.b[i])
+			inputs = self.core_function(inputs, self.w[i], np.tile(self.b[i], [data_num, 1]).transpose())
 			self.bp_temp[i] = inputs
 		return inputs
 
 
 	#back propagation function
 	def bp(self, inputs, outputs):
-		# print 'bp-----'
 
 		errors = []
 		for i in range(self.layer_num-2, -1, -1):
-			# print '=='
-			# print i
-
 			
+			if i is 0:
+				_input = inputs
+			else:
+				_input = self.bp_temp[i-1]
 
+			_output = self.bp_temp[i]
+
+			#calculate errors
 			if i is self.layer_num-2:
 				#hidden to output
-				_errors = []
-				for j in range(len(self.bp_temp[i])):
-					_f = self.bp_temp[i][j]*(1-self.bp_temp[i][j])
-					# print _f
-					if _f == 0:
-						_error = (outputs[j]-self.bp_temp[i][j])*0.2
-					else:
-						_error = _f*(outputs[j]-self.bp_temp[i][j])
-					_errors.append(_error)
-					self.b[i][j] += _error*self.learningRate
+				_input = self.bp_temp[i-1]
 
-				errors = _errors
-				for j in range(len(self.w[i])):
-					for p in range(len(self.w[i][j])):
-						self.w[i][j][p] += errors[j]*self.learningRate*self.bp_temp[i-1][p]
-				# print self.b[i]
-				# print self.w[i]
+				_f = _output*(1 - _output)
+
+				_error = (_output - outputs.transpose()) * _f
+
+				errors = _error
+
 			else:
 				#hidden layers
-				_output = self.bp_temp[i]
-				if i is 0:
-					_input = inputs
-				else:
-					_input = self.bp_temp[i-1]
+				_error = np.dot(errors.transpose(), self.w[i+1])
+				_error = _error.transpose()
 
-				#calculate errors for each node
-				_errors = []
-				for j in range(len(_output)):
-					_error = 0
-					for p in range(len(errors)):
-						_error += errors[p]*self.w[i+1][p][j]
-					if _output[j]*(1-_output[j]) != 0:
-						_error *= _output[j]*(1-_output[j])
-					_errors.append(_error)
-					#fine turn bias
-					self.b[i][j] += self.learningRate*_error
+				_error *= _output*(1 - _output)
 
-				#fine turn weights
-				for j in range(len(self.w[i])):
-					for p in range(len(self.w[i][j])):
-						self.w[i][j][p] += self.learningRate*_errors[j]*_input[p]
 
-				errors = _errors
+			#updata
+			self.b[i] -= sum(_error.transpose())*self.learningRate/self.batch
+			self.w[i] -= np.dot(_error, _input.transpose())*self.learningRate/self.batch
+			errors = _error
+				
 			# print errors
 
 
 	#simulate function
 	def sim(self, inputs):
-		return self.ff(inputs)
+		return self.ff(inputs.transpose(), len(inputs))
