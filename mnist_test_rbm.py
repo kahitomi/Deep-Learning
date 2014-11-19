@@ -20,8 +20,8 @@ test_result = np.float64(data['test_y'])
 
 
 #init data
-train_data = train_data#[0:10000]
-train_result = train_result#[0:10000]
+train_data = train_data[0:1000]
+train_result = train_result[0:1000]
 
 
 
@@ -30,7 +30,7 @@ rbm = ann.rbm(784, 3, 5, 0.3, 100)
 
 rbm.train(train_data)
 
-files.saveData(rbm, 'rbm.db')
+files.saveData(rbm, 'rbm-1000.db')
 
 
 

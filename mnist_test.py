@@ -24,8 +24,8 @@ test_result = np.float64(data['test_y'])
 
 
 #init data
-train_data = train_data#[0:100]
-train_result = train_result#[0:100]
+train_data = train_data#[0:1000]
+train_result = train_result#[0:1000]
 
 # test_data = train_data#[[0, 19]]
 # test_result = train_result#[[0, 19]]
@@ -47,17 +47,17 @@ train_result = train_result#[0:100]
 
 #init ann
 opt = {
-	'architecture' : [784,30,10],
-	'learningRate' : 0.3,
+	'architecture' : [784,784,784,30,10],
+	'learningRate' : 1.5,
 	'error' : 0.001,
-	'epochs' : 100,
+	'epochs' : 15,
 	'batch' : 100
 }
 nn = ann.ann(opt)
 
-#combain
-rbm = files.loadData('rbm.db')
-nn.rbm(rbm)
+# #combain
+# rbm = files.loadData('rbm-1000.db')
+# nn.rbm(rbm)
 
 #train
 nn.train(train_data, train_result)

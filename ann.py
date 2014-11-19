@@ -45,10 +45,8 @@ class eann(object):
 		data = train_data
 		#layer weights train
 		for layer in range(0, self.layer_num-1):
-			if layer is self.layer_num-1:
-				break
 
-			print 'To hidden layer ', layer+1
+			print 'To upper layer ', layer+1
 			#initialise population
 			population = np.random.random_integers(3, size=(self.population, self.architecture[layer+1], self.architecture[layer]))-2
 			print 'initialise population successed'
@@ -67,9 +65,16 @@ class eann(object):
 				_max = 0
 				for i in range(self.population):
 					#calculate fitness
-					_data = self.core_function(data.transpose(), population[i])
-					_data = self.core_function(_data, population[i].transpose())
-					fitness.append( 1 - np.mean(np.abs(data-_data.transpose())) )
+					if layer is self.layer_num-2:
+						#output layer
+						_data = self.core_function(data.transpose(), population[i])
+						_error = np.mean(np.abs(_data.transpose()-train_result))
+						fitness.append(1 - _error)
+					else:
+						#hidden layer
+						_data = self.core_function(data.transpose(), population[i])
+						_data = self.core_function(_data, population[i].transpose())
+						fitness.append( 1 - np.mean(np.abs(data-_data.transpose())) )
 					# if fitness[i] <= 0:
 					# 	print 'Fitness under 0 !!!!!!!!!!!!!!!!!!!!'
 					if fitness[i] > fitnessMax:
@@ -88,13 +93,17 @@ class eann(object):
 					print 'Finished\n'
 
 					#updata data
+					self.w[layer] = population[_max]
 					data = self.core_function(data.transpose(), population[_max])
+					data = data.transpose()
 					break
 
 				if epochs >= self.epochs and self.epochs != -1:
 					print 'Finished\n'
 					#updata data
+					self.w[layer] = population[_max]
 					data = self.core_function(data.transpose(), population[_max])
+					data = data.transpose()
 					break;
 
 				#reproduce with variation
