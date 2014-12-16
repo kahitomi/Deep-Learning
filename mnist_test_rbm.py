@@ -25,25 +25,35 @@ train_result = train_result[0:1000]
 
 
 
-#init rbm
-rbm = ann.rbm(784, 3, 5, 0.3, 100)
+# #init rbm
+# rbm = ann.rbm(784, 3, 5, 0.3, 100)
 
-rbm.train(train_data)
+# rbm.train(train_data)
 
-files.saveData(rbm, 'rbm-1000.db')
+# files.saveData(rbm, 'rbm-1000.db')
 
 
 
-# rbm = files.loadData('rbm.db')
+rbm = files.loadData('rbm.db')
 
-# im = rbm.sim(test_data[200:202])
+im = rbm.sim(test_data[0:1])
 
-# print np.array_equal(im[0], im[1])
-
-# im = np.array(im[0])
-# im = im.reshape(28,28)
+im = np.array(im[0])
+im = im.reshape(28,28)
  
-# fig = plt.figure()
-# plotwindow = fig.add_subplot(111)
-# plt.imshow(im , cmap='gray')
-# plt.show()
+fig = plt.figure()
+plotwindow = fig.add_subplot(111)
+plt.imshow(im , cmap='gray')
+plt.show()
+
+im = rbm.sim(test_data[0:1])
+
+print np.array_equal(im[0], im[1])
+
+im = np.array(im[0])
+im = im.reshape(28,28)
+ 
+fig = plt.figure()
+plotwindow = fig.add_subplot(111)
+plt.imshow(im , cmap='gray')
+plt.show()
