@@ -1,0 +1,8 @@
+#.gitignore
+*.db
+*.pyc
+*.zip
+minst/t10k-images-idx3-ubyte
+minst/t10k-labels-idx1-ubyte
+minst/train-images-idx3-ubyte
+minst/train-labels-idx1-ubyte
